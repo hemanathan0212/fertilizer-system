@@ -1,0 +1,32 @@
+{
+    "best_model": "Random Forest",
+    "metrics": {
+        "Random Forest": {
+            "accuracy": 75.19,
+            "precision": 77.47,
+            "recall": 75.19,
+            "f1_score": 75.42
+        },
+        "Decision Tree": {
+            "accuracy": 64.66,
+            "precision": 67.14,
+            "recall": 64.66,
+            "f1_score": 64.64
+        },
+        "Support Vector Machine (SVM)": {
+            "accuracy": 64.66,
+            "precision": 69.69,
+            "recall": 64.66,
+            "f1_score": 65.46
+        }
+    },
+    "target_classes": [
+        "10-26-26",
+        "14-35-14",
+        "17-17-17",
+        "20-20",
+        "28-28",
+        "DAP",
+        "Urea"
+    ]
+}

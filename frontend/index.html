@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Agent Fertilizer Recommendation System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    
+    <header>
+      <h1>AI Agent Fertilizer Recommendation</h1>
+      <p>Intelligent agronomic decision support combining Random Forest ML classification with LangChain knowledge base reasoning.</p>
+    </header>
+
+    <div class="card">
+      <!-- Live Demo Presets Section -->
+      <div class="preset-section">
+        <div class="preset-title">💡 Faculty Demo Presets (Click to Auto-fill)</div>
+        <div class="preset-buttons">
+          <button type="button" class="btn-preset" onclick="loadPreset('sugarcane_urea')">Sugarcane (Low N &rarr; Urea)</button>
+          <button type="button" class="btn-preset" onclick="loadPreset('cotton_dap')">Cotton (Low P &rarr; DAP)</button>
+          <button type="button" class="btn-preset" onclick="loadPreset('wheat_balanced')">Wheat (Balanced &rarr; 17-17-17)</button>
+          <button type="button" class="btn-preset" onclick="loadPreset('groundnut_potash')">Groundnut (High K &rarr; 10-26-26)</button>
+        </div>
+      </div>
+
+      <div class="card-title">
+        <span>🌱 Soil & Environmental Parameters</span>
+      </div>
+
+      <form id="recommendForm">
+        <div class="form-grid">
+          <!-- Temperature -->
+          <div class="form-group">
+            <label for="temperature">Temperature <span class="unit">(°C)</span></label>
+            <input type="number" step="0.1" id="temperature" class="form-control" placeholder="e.g. 28.5" value="28.5" required>
+            <span class="form-help">Ambient temperature</span>
+          </div>
+
+          <!-- Humidity -->
+          <div class="form-group">
+            <label for="humidity">Humidity <span class="unit">(%)</span></label>
+            <input type="number" step="0.1" id="humidity" class="form-control" placeholder="e.g. 65.0" value="65.0" required>
+            <span class="form-help">Relative air humidity</span>
+          </div>
+
+          <!-- Moisture -->
+          <div class="form-group">
+            <label for="moisture">Soil Moisture <span class="unit">(%)</span></label>
+            <input type="number" step="0.1" id="moisture" class="form-control" placeholder="e.g. 45.0" value="45.0" required>
+            <span class="form-help">Moisture level in topsoil</span>
+          </div>
+
+          <!-- Soil Type -->
+          <div class="form-group">
+            <label for="soil_type">Soil Type</label>
+            <select id="soil_type" class="form-control" required>
+              <option value="Loamy" selected>Loamy</option>
+              <option value="Sandy">Sandy</option>
+              <option value="Black">Black</option>
+              <option value="Red">Red</option>
+              <option value="Clayey">Clayey</option>
+            </select>
+            <span class="form-help">Predominant field soil texture</span>
+          </div>
+
+          <!-- Crop Type -->
+          <div class="form-group">
+            <label for="crop_type">Target Crop</label>
+            <select id="crop_type" class="form-control" required>
+              <option value="Wheat">Wheat</option>
+              <option value="Sugarcane" selected>Sugarcane</option>
+              <option value="Cotton">Cotton</option>
+              <option value="Paddy">Paddy</option>
+              <option value="Maize">Maize</option>
+              <option value="Barley">Barley</option>
+              <option value="Millets">Millets</option>
+              <option value="Oil seeds">Oil seeds</option>
+              <option value="Pulses">Pulses</option>
+              <option value="Ground Nuts">Ground Nuts</option>
+              <option value="Tobacco">Tobacco</option>
+            </select>
+            <span class="form-help">Crop species to be cultivated</span>
+          </div>
+
+          <!-- Nitrogen -->
+          <div class="form-group">
+            <label for="nitrogen">Nitrogen (N) <span class="unit">(ppm / ratio)</span></label>
+            <input type="number" step="0.1" id="nitrogen" class="form-control" placeholder="e.g. 15.0" value="15.0" required>
+            <span class="form-help">Available soil nitrogen</span>
+          </div>
+
+          <!-- Potassium -->
+          <div class="form-group">
+            <label for="potassium">Potassium (K) <span class="unit">(ppm / ratio)</span></label>
+            <input type="number" step="0.1" id="potassium" class="form-control" placeholder="e.g. 28.0" value="28.0" required>
+            <span class="form-help">Available soil potash</span>
+          </div>
+
+          <!-- Phosphorous -->
+          <div class="form-group">
+            <label for="phosphorous">Phosphorous (P) <span class="unit">(ppm / ratio)</span></label>
+            <input type="number" step="0.1" id="phosphorous" class="form-control" placeholder="e.g. 32.0" value="32.0" required>
+            <span class="form-help">Available soil phosphorus</span>
+          </div>
+        </div>
+
+        <div class="button-row">
+          <button type="submit" class="btn btn-primary" id="submitBtn">
+            <span>🚀 Run AI Agent Recommendation</span>
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="resetForm()">
+            <span>Reset</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Loading Spinner -->
+      <div class="loading-box" id="loadingBox">
+        <div class="spinner"></div>
+        <p>AI Agent is orchestrating ML prediction & agronomic knowledge base...</p>
+      </div>
+
+      <!-- Inline Result Card -->
+      <div id="inlineResult" style="display: none; margin-top: 32px;">
+        <div class="result-header">
+          <div>
+            <div class="result-target-label">AI Agent Recommendation</div>
+            <div class="result-target-name" id="resFertilizer">-</div>
+          </div>
+          <div class="confidence-badge" id="resConfidence">Confidence: --%</div>
+        </div>
+
+        <div class="info-cards-grid">
+          <div class="info-card">
+            <div class="info-card-label">Recommended Dosage</div>
+            <div class="info-card-val" id="resDosage">-</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-label">Nutrient Grade (NPK)</div>
+            <div class="info-card-val" id="resNPK">-</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-label">Crop Management Note</div>
+            <div class="info-card-val" id="resCropAdj" style="font-size: 0.92rem;">-</div>
+          </div>
+        </div>
+
+        <div class="card-title">
+          <span>🧠 LangChain Agent Explanation</span>
+        </div>
+        <div class="explanation-box" id="resExplanation"></div>
+
+        <div style="display: flex; gap: 12px; margin-top: 16px;">
+          <a href="result.html" class="btn btn-secondary" style="flex: 1;">
+            📄 View Full Screen Report Page
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Demo Presets for Live Faculty Viva
+    const presets = {
+      sugarcane_urea: {
+        temperature: 30.5,
+        humidity: 68.0,
+        moisture: 48.0,
+        soil_type: "Loamy",
+        crop_type: "Sugarcane",
+        nitrogen: 14.0,     // Low N -> Urea
+        potassium: 30.0,
+        phosphorous: 35.0
+      },
+      cotton_dap: {
+        temperature: 28.0,
+        humidity: 60.0,
+        moisture: 40.0,
+        soil_type: "Black",
+        crop_type: "Cotton",
+        nitrogen: 28.0,
+        potassium: 26.0,
+        phosphorous: 12.0    // Low P -> DAP
+      },
+      wheat_balanced: {
+        temperature: 22.0,
+        humidity: 58.0,
+        moisture: 38.0,
+        soil_type: "Loamy",
+        crop_type: "Wheat",
+        nitrogen: 22.0,
+        potassium: 22.0,
+        phosphorous: 22.0    // Balanced -> 17-17-17
+      },
+      groundnut_potash: {
+        temperature: 29.0,
+        humidity: 70.0,
+        moisture: 45.0,
+        soil_type: "Sandy",
+        crop_type: "Ground Nuts",
+        nitrogen: 35.0,
+        potassium: 12.0,     // Low K, Low P -> 10-26-26
+        phosphorous: 15.0
+      }
+    };
+
+    function loadPreset(key) {
+      const data = presets[key];
+      if (!data) return;
+      document.getElementById("temperature").value = data.temperature;
+      document.getElementById("humidity").value = data.humidity;
+      document.getElementById("moisture").value = data.moisture;
+      document.getElementById("soil_type").value = data.soil_type;
+      document.getElementById("crop_type").value = data.crop_type;
+      document.getElementById("nitrogen").value = data.nitrogen;
+      document.getElementById("potassium").value = data.potassium;
+      document.getElementById("phosphorous").value = data.phosphorous;
+    }
+
+    function resetForm() {
+      document.getElementById("recommendForm").reset();
+      document.getElementById("inlineResult").style.display = "none";
+    }
+
+    // Determine Backend URL (handles direct file:// opening and hosted http://)
+    function getApiUrl() {
+      if (window.location.protocol === 'file:') {
+        return 'http://127.0.0.1:8000/recommend';
+      }
+      return '/recommend';
+    }
+
+    document.getElementById("recommendForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+
+      const payload = {
+        temperature: parseFloat(document.getElementById("temperature").value),
+        humidity: parseFloat(document.getElementById("humidity").value),
+        moisture: parseFloat(document.getElementById("moisture").value),
+        soil_type: document.getElementById("soil_type").value,
+        crop_type: document.getElementById("crop_type").value,
+        nitrogen: parseFloat(document.getElementById("nitrogen").value),
+        potassium: parseFloat(document.getElementById("potassium").value),
+        phosphorous: parseFloat(document.getElementById("phosphorous").value)
+      };
+
+      const loadingBox = document.getElementById("loadingBox");
+      const inlineResult = document.getElementById("inlineResult");
+      const submitBtn = document.getElementById("submitBtn");
+
+      loadingBox.style.display = "block";
+      inlineResult.style.display = "none";
+      submitBtn.disabled = true;
+
+      try {
+        const response = await fetch(getApiUrl(), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server returned HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Save in sessionStorage for result.html
+        sessionStorage.setItem("fertilizer_result", JSON.stringify(data));
+
+        // Populate inline display
+        document.getElementById("resFertilizer").textContent = data.fertilizer_name;
+        document.getElementById("resConfidence").textContent = `Confidence: ${data.confidence}%`;
+        document.getElementById("resDosage").textContent = data.dosage_per_acre;
+        document.getElementById("resNPK").textContent = data.npk_composition;
+        document.getElementById("resCropAdj").textContent = data.crop_adjustments;
+        document.getElementById("resExplanation").innerHTML = formatExplanationMarkdown(data.explanation);
+
+        inlineResult.style.display = "block";
+        inlineResult.scrollIntoView({ behavior: "smooth" });
+      } catch (err) {
+        alert("Failed to connect to recommendation backend. Please make sure FastAPI backend is running at http://127.0.0.1:8000.\nError: " + err.message);
+      } finally {
+        loadingBox.style.display = "none";
+        submitBtn.disabled = false;
+      }
+    });
+
+    function formatExplanationMarkdown(text) {
+      if (!text) return "";
+      // Simple markdown converter for headers, bold, bullets
+      let html = text
+        .replace(/### (.*?)\n/g, '<h3>$1</h3>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/- (.*?)\n/g, '• $1<br/>');
+      return html;
+    }
+  </script>
+</body>
+</html>
